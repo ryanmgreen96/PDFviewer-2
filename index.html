@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#ffffff">
+    <title>Text Categorizer</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="jquery.min.js"></script>
+    <style>
+        body {
+            font-family: 'Centaur', serif;
+            margin: 0;
+            padding: 20px;
+            background-color: white;
+            color: hsl(40, 93%, 88%);
+            font-size: 1.6em;
+            /* light yellowish gold */
+        }
+        @font-face {
+  font-family: 'Centaur';
+  src: url('Centaur.woff2') format('woff2');
+      
+  font-weight: normal;
+  font-style: normal;
+}
+
+        .color-picker,
+        .category-bar {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .color-picker button {
+            width: 30px;
+            height: 30px;
+            margin: 5px;
+            border: 1px solid #999;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .category-bar button {
+            margin: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        .text-piece {
+            position: relative;
+            padding-right: 50px; 
+            margin: 10px auto;
+  padding: 10px;
+  max-width: 600px;
+  background-color: transparent; /* changed from a solid color */
+  border: none; /* removed border */
+        }
+
+        .title-display {
+            font-family:Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+            font-style: italic;
+            font-size: .7em;
+            padding: 5px;
+            color:#fff;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+  margin-top: 1em;  /* or 1.5em for more space */
+  margin-bottom:.5em
+        }
+
+     
+
+        .modal {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #800000; /* dark red */
+  color: white;
+  padding: 20px;
+  box-shadow: 0 0 10px black;
+  z-index: 1001;
+  max-width: 90%;
+  max-height: 90vh;         /* Limits modal height */
+  overflow-y: auto;         /* Adds scroll inside modal */
+  box-sizing: border-box;
+}
+      
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .edit-btn {
+            position: absolute;
+  right: 0px;
+  top: 50%; /* default, will be overridden by JS */
+  transform: translateY(-50%);
+  cursor: pointer;
+  background: #a07f7f;
+  color: white;
+  border: none;
+  border-radius: 2px;
+  padding: 5px 5px;
+  font-size: .1em;
+  transition: opacity 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+        }
+
+        .bookmark-box {
+            position: absolute;
+  bottom: px;
+  left: 10px;
+        }
+
+        textarea#modal-title {
+  width: 500px;
+  min-width: 300px;
+  max-width: 100%;
+  min-height: 150px;
+  max-height: 60vh;
+  overflow: auto;
+  resize: both; /* allows horizontal and vertical resizing */
+  padding: 10px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+        select#modal-category {
+  border: 2px solid #fff;
+  background-color: #600000;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+}
+.filter-btn.active {
+  background-color: #800000;
+  color: white;
+}
+
+.color-picker button {
+    color: white;
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+.color-picker button#white-bg-btn {
+    color: black;
+}
+
+#content-container {
+  all: unset;
+}
+
+    </style>
+</head>
+
+<body>
+
+    <div class="color-picker">
+        <button data-color="#8c4545" style="background:#8c4545;"></button>
+        <button data-color="#336d27" style="background:#336d27;"></button>
+        <button data-color="#3e7c91" style="background:#3e7c91;"></button>
+        <button data-color="#79599c" style="background:#79599c;"></button>
+        <button id="white-bg-btn" data-color="#ffffff" style="background: white; border: 1px solid #999;">W</button>
+    </div>
+    
+
+    <div class="category-bar">
+        <button class="filter-btn" data-filter="Philo">Philo</button>
+        <!-- <button class="filter-btn" data-filter="World">Wrld</button>
+        <button class="filter-btn" data-filter="Principle">Prncpl</button> -->
+        <button class="filter-btn" data-filter="joy">Joy</button>
+        <button class="filter-btn" data-filter="Reflection">Reflection</button>
+        <button class="filter-btn" data-filter="Work">Work</button>
+        <button class="filter-btn" data-filter="Grub">Grub</button>
+        <!-- <button class="filter-btn" data-filter="Civ">Civ</button> -->
+        <button id="filter-clear"></button>
+    </div>
+    <div class="bookmark-bar" style="text-align: center; margin-bottom: 10px;">
+        <button id="show-bookmarked" style="font-size: 0.4em;">🔖  </button>
+    </div>
+    <div id="content-container">
+        <div id="content">
+            <div class="text-piece" data-id="piece1">
+                <div class="title-display"></div>
+                <div class="text-body">
+                        Big bobby
+                </div><button class="edit-btn"></button><input type="checkbox" class="bookmark-box">
+            </div>
+            <div class="text-piece" data-id="piece2">
+                <div class="title-display"></div>
+                <div class="text-body">
+            tom hotty
+                </div><button class="edit-btn"></button><input type="checkbox" class="bookmark-box">
+            </div>
+            <div class="text-piece" data-id="piece3">
+                <div class="title-display"></div>
+                <div class="text-body">
+            Rude Maury 
+                </div><button class="edit-btn"></button><input type="checkbox" class="bookmark-box">
+            </div>
+        </div>
+    </div>
+    
+        
+   
+    
+  
+  
+
+    <div class="overlay"></div>
+    <div class="modal">
+        <label>
+            <textarea id="modal-title"></textarea>
+            <button id="save-meta">Save</button>
+        </label>
+        <label>
+            <div id="modal-category">
+                <label><input type="checkbox" value="Philo"> Philo</label><br>
+                <!-- <label><input type="checkbox" value="World"> World</label><br>
+                <label><input type="checkbox" value="Principle"> Principle</label><br> -->
+                <label><input type="checkbox" value="joy"> Joy</label> <br>
+                <label><input type="checkbox" value="Reflection"> Reflection</label><br><br>
+                <label><input type="checkbox" value="Work"> Work</label><br>
+                <label><input type="checkbox" value="Grub"> Grub</label><br>
+                <!-- <label><input type="checkbox" value="Civ"> Civ</label> -->
+            </div>
+        </label><br><br>
+
+        <button id="cancel-meta">Cancel</button>
+    </div>
+
+    <script>
+        $(function () {
+            const savedBg = localStorage.getItem("bgColor");
+            if (savedBg) $("body").css("background-color", savedBg);
+
+            const scrollY = localStorage.getItem("scrollY");
+            if (scrollY) $(window).scrollTop(scrollY);
+
+            let bookmarkedId = localStorage.getItem("bookmarkId");
+
+            $(".text-piece").each(function () {
+                const id = $(this).data("id");
+                const title = localStorage.getItem(id + "_title");
+                const cat = localStorage.getItem(id + "_cat");
+                if (title) $(this).find(".title-display").text(title);
+                if (cat) $(this).attr("data-category", cat);
+                if (id === bookmarkedId) {
+                    $(this).find(".bookmark-box").prop("checked", true);
+                }
+
+            });
+
+            $(".color-picker button").on("click", function () {
+                const color = $(this).data("color");
+                $("body").css("background-color", color);
+                localStorage.setItem("bgColor", color);
+
+                if (color.toLowerCase() === "#ffffff" || color.toLowerCase() === "white") {
+                    $("body").css("color", "black");                // body text black
+                    $(".title-display").css("color", "black");      // title-display black
+                } else {
+                    const lightTextColor = "#fff";                   // white or light color for title-display on dark bg
+                    const bodyTextColor = "hsl(38, 72%, 75%)";       // your default gold-ish color for body text
+
+                    $("body").css("color", bodyTextColor);           // body text color
+                    $(".title-display").css("color", lightTextColor);// title-display light text on colored bg
+                }
+            });
+
+
+
+            let activeFilters = [];
+
+            $(".filter-btn").on("click", function () {
+                const category = $(this).data("filter");
+
+                $(this).toggleClass("active");
+
+                if ($(this).hasClass("active")) {
+                    activeFilters.push(category);
+                } else {
+                    activeFilters = activeFilters.filter(c => c !== category);
+                }
+
+                filterBySelectedCategories();
+            });
+
+            $("#filter-clear").on("click", function () {
+                activeFilters = [];
+                $(".filter-btn").removeClass("active");
+                $(".text-piece").show();
+            });
+
+            function filterBySelectedCategories() {
+                $(".text-piece").each(function () {
+                    const pieceCategories = ($(this).attr("data-category") || "").split(",");
+                    const matchAll = activeFilters.every(c => pieceCategories.includes(c));
+                    $(this).toggle(matchAll);
+                });
+            }
+
+
+            let currentPiece = null;
+            $(document).on("click", ".edit-btn", function () {
+                currentPiece = $(this).closest(".text-piece");
+                const id = currentPiece.data("id");
+                const title = localStorage.getItem(id + "_title") || "";
+                const cats = (localStorage.getItem(id + "_cat") || "").split(",");
+                $("#modal-title").val(title);
+                $("#modal-category input").prop("checked", false);
+                cats.forEach(c => {
+                    $("#modal-category input[value='" + c + "']").prop("checked", true);
+                });
+
+                $(".overlay, .modal").show();
+            });
+
+            $("#cancel-meta").on("click", function () {
+                $(".overlay, .modal").hide();
+            });
+
+            $("#save-meta").on("click", function () {
+                const title = $("#modal-title").val();
+                const cats = [];
+                $("#modal-category input:checked").each(function () {
+                    cats.push($(this).val());
+                });
+                const catStr = cats.join(",");
+                const id = currentPiece.data("id");
+                const encodedTitle = title.replace(/\n/g, "<br>");
+                currentPiece.find(".title-display").text(title);
+
+
+                currentPiece.attr("data-category", catStr);
+                localStorage.setItem(id + "_title", title);
+                localStorage.setItem(id + "_cat", catStr);
+                $(".overlay, .modal").hide();
+            });
+
+            $(".bookmark-box").on("change", function () {
+                $(".bookmark-box").not(this).prop("checked", false);
+                if ($(this).is(":checked")) {
+                    const id = $(this).closest(".text-piece").data("id");
+                    localStorage.setItem("bookmarkId", id);
+                } else {
+                    localStorage.removeItem("bookmarkId");
+                }
+            });
+            let showingBookmark = false;
+
+            $("#show-bookmarked").on("click", function () {
+                const bookmarkedId = localStorage.getItem("bookmarkId");
+                if (bookmarkedId) {
+                    const $target = $(`.text-piece[data-id='${bookmarkedId}']`);
+                    const $bookmark = $target.find(".bookmark-box");
+
+                    if ($bookmark.length) {
+                        $('html, body').animate({
+                            scrollTop: $bookmark.offset().top - 40  // buffer above checkbox
+                        }, 500);
+                    } else if ($target.length) {
+                        $('html, body').animate({
+                            scrollTop: $target.offset().top
+                        }, 500);
+                    } else {
+                        alert("Bookmarked piece not found on this page.");
+                    }
+                } else {
+                    alert("No piece bookmarked yet.");
+                }
+            });
+
+            $(window).on("beforeunload", function () {
+                localStorage.setItem("scrollY", window.scrollY);
+            });
+        });
+        $(function () {
+                function updateEditButtons() {
+                    const scrollTop = $(window).scrollTop();
+                    const windowHeight = $(window).height();
+
+                    $('div#content').each(function () {
+                        const $content = $(this);
+                        const $piece = $content.find('.text-piece');
+                        const $btn = $piece.find('.edit-btn');
+
+                        if ($piece.length === 0 || $btn.length === 0) return;
+
+                        const pieceTop = $piece.offset().top;
+                        const pieceBottom = pieceTop + $piece.outerHeight();
+
+                        // If any part of the piece is visible
+                        if (pieceBottom > scrollTop && pieceTop < scrollTop + windowHeight) {
+                            let centerY = scrollTop + windowHeight / 2;
+
+                            // Clamp centerY within piece bounds with 20px margin
+                            centerY = Math.max(centerY, pieceTop + 20);
+                            centerY = Math.min(centerY, pieceBottom - 20);
+
+                            const btnTop = centerY - pieceTop;
+
+                            $btn.css({
+                                top: btnTop + 'px',
+                                opacity: 1,
+                                pointerEvents: 'auto'
+                            });
+                        } else {
+                            $btn.css({
+                                opacity: 0,
+                                pointerEvents: 'none'
+                            });
+                        }
+                    });
+                }
+
+                $(window).on('scroll resize', updateEditButtons);
+                updateEditButtons();
+
+                // Example: handle edit button clicks
+              
+            });
+            function autoResizeTextarea(el) {
+                    el.style.height = "auto"; // reset height
+                    el.style.height = (el.scrollHeight) + "px"; // adjust height to content
+                }
+
+                $("#modal-title").on("input", function () {
+                    autoResizeTextarea(this);
+                });
+
+                const $title = $target.find(".title-display");
+
+if ($title.length) {
+  $('html, body').animate({
+    scrollTop: $title.offset().top - 20  // scroll to title + padding
+  }, 500);
+} else {
+  $('html, body').animate({
+    scrollTop: $target.offset().top
+  }, 500);
+}
+
+
+   </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(() => console.log("Service Worker Registered"))
+                .catch((err) => console.error("Service Worker Failed", err));
+        }
+    </script>
+
+</body>
+
+</html>
+
+
+
